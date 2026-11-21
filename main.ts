@@ -5,14 +5,22 @@
 // into the output directory the harness provides. It needs no network and
 // uses only the Node.js standard library.
 
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "out";
+const outFile = join(outDir, "VIDEO.json");
 
 mkdirSync(outDir, { recursive: true });
-copyFileSync(join(here, "VIDEO.json"), join(outDir, "VIDEO.json"));
+copyFileSync(join(here, "VIDEO.json"), outFile);
 
-console.log("VIDEO.json copied to " + outDir);
+// Read the copy back and check it really names a video: a silent bad copy
+// would enter a placeholder as the entry, so fail loudly instead.
+const video = JSON.parse(readFileSync(outFile, "utf8"));
+if (typeof video.url !== "string" || video.url.length === 0) {
+  throw new Error("VIDEO.json has no video url");
+}
+
+console.log("VIDEO.json copied to " + outDir + " for video " + video.url);
